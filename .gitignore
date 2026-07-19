@@ -1,0 +1,9 @@
+node_modules
+out
+dist
+release
+*.log
+.DS_Store
+
+# 内部产品设计文档（不公开；如需公开可删掉此行）
+仲谦-产品需求与技术架构文档-v1.1.md

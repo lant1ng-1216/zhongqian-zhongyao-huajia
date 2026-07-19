@@ -1,0 +1,70 @@
+{
+  "name": "zhongqian",
+  "version": "1.0.0",
+  "description": "仲谦 · 中药划价软件",
+  "main": "./out/main/index.js",
+  "author": "仲谦",
+  "license": "MIT",
+  "scripts": {
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "build:win": "electron-vite build && electron-builder --win",
+    "build:mac": "electron-vite build && electron-builder --mac"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.8.1",
+    "pinyin-pro": "^3.26.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.7.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "postcss": "^8.4.49",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3",
+    "vite": "^5.4.11"
+  },
+  "build": {
+    "appId": "com.zhongqian.app",
+    "productName": "仲谦",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "resources/**/*"
+    ],
+    "asarUnpack": [
+      "**/*.node",
+      "node_modules/better-sqlite3/**"
+    ],
+    "win": {
+      "target": "nsis",
+      "artifactName": "仲谦-安装程序-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "仲谦"
+    },
+    "mac": {
+      "target": "dmg"
+    }
+  }
+}

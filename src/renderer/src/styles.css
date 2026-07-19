@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   三套主题：只改表现层（配色/字体/字号），不改交互逻辑与布局。
+   通过 <html data-theme="..."> 切换，切换即时生效。
+   颜色以 "R G B" 空格分隔格式书写，配合 tailwind 的 <alpha-value>。
+   ============================================================ */
+
+/* 现代极简（默认） */
+:root,
+:root[data-theme='modern'] {
+  --color-brand: 16 129 116; /* 青绿 */
+  --color-accent: 217 119 6; /* 琥珀 */
+  --color-surface: 244 246 245; /* 页面背景 */
+  --color-panel: 255 255 255; /* 卡片 */
+  --color-ink: 24 33 39; /* 主文字 */
+  --color-muted: 107 122 130; /* 次要文字 */
+  --color-line: 224 230 229; /* 分割线 */
+  --color-danger: 220 38 38;
+  --color-ok: 22 163 74;
+  --fs-base: 15px;
+  --font-family: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --radius: 10px;
+}
+
+/* 中式国风 */
+:root[data-theme='chinese'] {
+  --color-brand: 138 30 30; /* 朱红 */
+  --color-accent: 176 137 60; /* 描金 */
+  --color-surface: 244 235 220; /* 宣纸米 */
+  --color-panel: 252 247 238;
+  --color-ink: 44 34 28; /* 墨色 */
+  --color-muted: 122 104 84;
+  --color-line: 214 197 170;
+  --color-danger: 176 42 42;
+  --color-ok: 90 122 74;
+  --fs-base: 16px;
+  --font-family: 'STKaiti', 'KaiTi', '楷体', 'PingFang SC', 'Microsoft YaHei', serif;
+  --radius: 4px;
+}
+
+/* 实用大字（高对比度、大字号） */
+:root[data-theme='large'] {
+  --color-brand: 0 74 173; /* 深蓝 */
+  --color-accent: 200 60 0;
+  --color-surface: 255 255 255;
+  --color-panel: 255 255 255;
+  --color-ink: 0 0 0;
+  --color-muted: 60 60 60;
+  --color-line: 40 40 40;
+  --color-danger: 200 0 0;
+  --color-ok: 0 130 40;
+  --fs-base: 19px;
+  --font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --radius: 8px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: var(--fs-base);
+  color: rgb(var(--color-ink));
+  background: rgb(var(--color-surface));
+}
+
+/* 实用大字主题下加粗边框，增强对比 */
+:root[data-theme='large'] .themed-border {
+  border-width: 2px;
+}
+
+/* 通用组件样式（用 @layer components 便于复用） */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-1 px-4 py-2 rounded-[var(--radius)] font-medium transition-colors select-none;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-white hover:opacity-90 active:opacity-80;
+  }
+  .btn-accent {
+    @apply btn bg-accent text-white hover:opacity-90;
+  }
+  .btn-ghost {
+    @apply btn border border-line text-ink hover:bg-surface;
+  }
+  .btn-danger {
+    @apply btn bg-danger text-white hover:opacity-90;
+  }
+  .btn-sm {
+    @apply px-2.5 py-1 text-[0.85em] rounded-[var(--radius)];
+  }
+  .card {
+    @apply bg-panel border border-line rounded-[var(--radius)];
+  }
+  .input {
+    @apply w-full px-3 py-2 rounded-[var(--radius)] border border-line bg-panel text-ink
+      outline-none focus:border-brand focus:ring-2 focus:ring-brand/30 placeholder:text-muted;
+  }
+  .label {
+    @apply block text-[0.85em] text-muted mb-1;
+  }
+  .th {
+    @apply text-left font-semibold text-muted px-3 py-2 text-[0.9em];
+  }
+  .td {
+    @apply px-3 py-2 border-t border-line;
+  }
+}
+
+/* 滚动条更贴合主题 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-line));
+  border-radius: 6px;
+}
