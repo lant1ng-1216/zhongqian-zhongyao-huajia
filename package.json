@@ -53,6 +53,7 @@
     ],
     "win": {
       "target": "nsis",
+      "icon": "build/icon.ico",
       "artifactName": "Zhongqian-Setup-${version}.${ext}"
     },
     "nsis": {
@@ -61,10 +62,13 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "仲谦"
+      "shortcutName": "仲谦",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
     },
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "icon": "build/icon.png"
     }
   }
 }
