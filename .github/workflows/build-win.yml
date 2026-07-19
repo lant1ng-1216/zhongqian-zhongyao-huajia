@@ -9,6 +9,10 @@ on:
     tags:
       - 'v*'
 
+# 允许工作流创建 Release 并上传安装包
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
