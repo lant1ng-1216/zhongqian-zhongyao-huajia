@@ -1,0 +1,47 @@
+name: 构建 Windows 安装包
+
+# 触发方式：
+#  1) 在 GitHub 网页 Actions 页手动点 "Run workflow"（workflow_dispatch）
+#  2) 推送形如 v1.0.0 的标签时自动构建（并发布到 Releases）
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 安装依赖（含为 Electron 重编译 better-sqlite3）
+        run: npm install
+
+      - name: 打包 Windows 安装程序
+        run: npm run build:win
+        env:
+          # 关闭 electron-builder 的代码签名（未购买证书时避免报错）
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          # 恢复密钥：在仓库 Settings → Secrets → Actions 里添加 ZHONGQIAN_RECOVERY_KEY
+          # 未设置则回退占位符 ZHONGQIAN-RESET-CHANGEME（不安全，正式分发请务必设置）
+          ZHONGQIAN_RECOVERY_KEY: ${{ secrets.ZHONGQIAN_RECOVERY_KEY }}
+
+      - name: 上传安装包（在本次运行的 Artifacts 里下载）
+        uses: actions/upload-artifact@v4
+        with:
+          name: 仲谦-Windows-安装包
+          path: release/*.exe
+          if-no-files-found: error
+
+      - name: 若为版本标签则发布到 Releases
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.exe
