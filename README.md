@@ -3,16 +3,11 @@
 > 一款面向**单人中医诊所 / 中药房**的**单机离线**中药划价桌面软件。开方划价、库存进货、顾客档案、常用方、调价、进销存报表一站搞定，体验、效率对标并超越传统"满天星"类划价软件。
 
 <p align="center">
-  <a href="https://github.com/lant1ng-1216/zhongqian-zhongyao-huajia/releases/latest">
-    <img src="https://img.shields.io/badge/⬇%20下载最新版-Windows%20安装包-08a17a?style=for-the-badge&logo=windows&logoColor=white" alt="下载 Windows 安装包" height="42">
-  </a>
+  <strong><a href="https://github.com/lant1ng-1216/zhongqian-zhongyao-huajia/releases/latest">⬇️ &nbsp;点击下载最新版 · Windows 安装包&nbsp; ⬇️</a></strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/lant1ng-1216/zhongqian-zhongyao-huajia/releases/latest"><img src="https://img.shields.io/github/v/release/lant1ng-1216/zhongqian-zhongyao-huajia?label=最新版本&color=8A1E1E" alt="最新版本"></a>
-  <img src="https://img.shields.io/badge/平台-Windows%2010%20%2F%2011-0078D6?logo=windows&logoColor=white" alt="平台">
-  <img src="https://img.shields.io/badge/离线-单机运行-5DCAA5" alt="离线单机">
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/许可-非商业·自定义-lightgrey" alt="许可"></a>
+  🖥️ Windows 10 / 11 &nbsp;·&nbsp; 📴 离线单机运行 &nbsp;·&nbsp; 🌿 单人诊所/中药房 &nbsp;·&nbsp; 📄 <a href="./LICENSE">非商业 · 自定义许可</a>
 </p>
 
 关键词：中药划价 · 中药材划价系统 · 中医处方划价 · 中药房管理 · 诊所划价软件 · 开方划价 · 进销存 · 库存管理 · 单机离线 · Windows 桌面应用
