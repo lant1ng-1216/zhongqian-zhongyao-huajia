@@ -53,7 +53,7 @@
     ],
     "win": {
       "target": "nsis",
-      "artifactName": "仲谦-安装程序-${version}.${ext}"
+      "artifactName": "Zhongqian-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
