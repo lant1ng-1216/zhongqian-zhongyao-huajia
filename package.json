@@ -10,8 +10,8 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "start": "electron-vite preview",
-    "build:win": "electron-vite build && electron-builder --win",
-    "build:mac": "electron-vite build && electron-builder --mac"
+    "build:win": "electron-vite build && electron-builder --win --publish never",
+    "build:mac": "electron-vite build && electron-builder --mac --publish never"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
