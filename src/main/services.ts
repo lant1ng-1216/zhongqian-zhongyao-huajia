@@ -516,8 +516,10 @@ export function getSettings(): AppSettings {
   return {
     clinic_name: map.clinic_name || '仲谦',
     printer_mode: (map.printer_mode as '58mm' | 'a5') || '58mm',
+    printer_device: map.printer_device || '',
     backup_folder_path: map.backup_folder_path || '',
     theme: (map.theme as AppSettings['theme']) || 'modern',
+    ui_zoom: parseFloat(map.ui_zoom || '1') || 1,
     has_password: (map.password_hash || '').length > 0
   }
 }
@@ -530,9 +532,11 @@ export function saveSettings(partial: Partial<AppSettings>): void {
   const tx = db.transaction(() => {
     if (partial.clinic_name !== undefined) set.run('clinic_name', partial.clinic_name)
     if (partial.printer_mode !== undefined) set.run('printer_mode', partial.printer_mode)
+    if (partial.printer_device !== undefined) set.run('printer_device', partial.printer_device)
     if (partial.backup_folder_path !== undefined)
       set.run('backup_folder_path', partial.backup_folder_path)
     if (partial.theme !== undefined) set.run('theme', partial.theme)
+    if (partial.ui_zoom !== undefined) set.run('ui_zoom', String(partial.ui_zoom))
   })
   tx()
 }

@@ -1,6 +1,8 @@
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, app } from 'electron'
+import { writeFileSync } from 'fs'
+import { join } from 'path'
 import { getSettings, getPrescription, dailySequence, quote } from './services'
-import type { Prescription, DispensePayload } from '../shared/types'
+import type { Prescription, DispensePayload, PrinterInfo } from '../shared/types'
 
 function esc(s: string): string {
   return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c] as string)
@@ -129,38 +131,134 @@ export function previewDraftHtml(payload: DispensePayload): string {
   return renderReceipt(pres, settings.printer_mode, 0)
 }
 
+// ---------- 打印实现（重写：真实文件加载 + 等字体就绪 + 指定打印机 + 复用窗口） ----------
+
+// 复用一个常驻隐藏打印窗口，避免每次新建/销毁造成卡顿
+let printWin: BrowserWindow | null = null
+// 打印串行化：同一时间只处理一个打印任务，避免连点产生多个任务
+let printing: Promise<unknown> = Promise.resolve()
+
+function getPrintWindow(): BrowserWindow {
+  if (printWin && !printWin.isDestroyed()) return printWin
+  printWin = new BrowserWindow({
+    show: false,
+    width: 300,
+    height: 900,
+    webPreferences: { offscreen: false }
+  })
+  return printWin
+}
+
+// 把 HTML 写到临时文件再 loadFile（比 data: URL 渲染更可靠），并等待渲染 + 字体就绪
+async function loadReceipt(win: BrowserWindow, html: string): Promise<void> {
+  const tmp = join(app.getPath('temp'), `zhongqian-receipt-${Date.now()}.html`)
+  writeFileSync(tmp, html, 'utf-8')
+  await win.loadFile(tmp)
+  // 等待字体加载完成，避免“白纸/缺字”
+  try {
+    await win.webContents.executeJavaScript(
+      'document.fonts && document.fonts.ready ? document.fonts.ready.then(() => true) : true'
+    )
+  } catch {
+    /* 忽略 */
+  }
+  // 再给一小段渲染时间
+  await new Promise((r) => setTimeout(r, 150))
+}
+
+async function doPrint(
+  html: string,
+  mode: '58mm' | 'a5',
+  deviceName: string
+): Promise<{ ok: boolean; error?: string }> {
+  const win = getPrintWindow()
+  await loadReceipt(win, html)
+  return await new Promise((resolve) => {
+    const opts: Electron.WebContentsPrintOptions = {
+      silent: mode === '58mm', // 58mm 走静默；A5 弹系统对话框
+      printBackground: true,
+      margins: { marginType: 'none' },
+      color: false
+    }
+    // 指定了打印机就明确打给它（治“打到默认的错机器/不吐纸”）
+    if (deviceName) opts.deviceName = deviceName
+    win.webContents.print(opts, (success, failureReason) => {
+      if (success) resolve({ ok: true })
+      else resolve({ ok: false, error: failureReason || '打印被取消或失败' })
+    })
+  })
+}
+
+// 串行执行，返回本次任务结果
+function enqueuePrint(
+  task: () => Promise<{ ok: boolean; error?: string }>
+): Promise<{ ok: boolean; error?: string }> {
+  const run = printing.then(task, task)
+  printing = run.catch(() => undefined)
+  return run
+}
+
 export async function printReceipt(
   prescriptionId: number
 ): Promise<{ ok: boolean; error?: string }> {
   const settings = getSettings()
   const mode = settings.printer_mode
   const html = buildReceiptHtml(prescriptionId, mode)
-
-  const win = new BrowserWindow({
-    show: false,
-    webPreferences: { offscreen: false }
+  return enqueuePrint(async () => {
+    try {
+      return await doPrint(html, mode, settings.printer_device)
+    } catch (e) {
+      return { ok: false, error: (e as Error).message }
+    }
   })
+}
 
-  try {
-    await win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html))
-    await new Promise((r) => setTimeout(r, 250))
+// 列出系统打印机（供设置里选择）
+export async function listPrinters(): Promise<PrinterInfo[]> {
+  const win = getPrintWindow()
+  const printers = await win.webContents.getPrintersAsync()
+  return printers.map((p) => ({
+    name: p.name,
+    displayName: p.displayName || p.name,
+    isDefault: p.isDefault
+  }))
+}
 
-    return await new Promise((resolve) => {
-      win.webContents.print(
-        {
-          silent: mode === '58mm',
-          printBackground: true,
-          margins: { marginType: 'none' }
-        },
-        (success, failureReason) => {
-          if (!win.isDestroyed()) win.close()
-          if (success) resolve({ ok: true })
-          else resolve({ ok: false, error: failureReason })
-        }
-      )
-    })
-  } catch (e) {
-    if (!win.isDestroyed()) win.close()
-    return { ok: false, error: (e as Error).message }
+// 测试打印：打一张样张，用指定打印机（不传则用已保存的）
+export async function testPrint(
+  deviceName?: string
+): Promise<{ ok: boolean; error?: string }> {
+  const settings = getSettings()
+  const mode = settings.printer_mode
+  const now = new Date()
+  const pad = (n: number): string => String(n).padStart(2, '0')
+  const sample: Prescription = {
+    id: 0,
+    patient_id: null,
+    patient_name: '测试顾客',
+    patient_gender: '男',
+    patient_age: '30',
+    doctor_name: '测试',
+    note: '打印测试',
+    doses_count: 7,
+    usage_method: '水煎服，日一剂',
+    acupuncture_fee: 50,
+    other_fee: 0,
+    herb_total: 50.4,
+    total_price: 100.4,
+    status: 'confirmed',
+    created_at: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`,
+    items: [
+      { herb_id: 0, herb_name: '当归', dose_per_unit_g: 9, unit_price_snapshot: 60, subtotal: 3.78 },
+      { herb_id: 0, herb_name: '黄芪', dose_per_unit_g: 12, unit_price_snapshot: 45, subtotal: 3.78 }
+    ]
   }
+  const html = renderReceipt(sample, mode, 8888)
+  return enqueuePrint(async () => {
+    try {
+      return await doPrint(html, mode, deviceName ?? settings.printer_device)
+    } catch (e) {
+      return { ok: false, error: (e as Error).message }
+    }
+  })
 }

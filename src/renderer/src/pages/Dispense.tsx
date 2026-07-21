@@ -78,6 +78,7 @@ export function Dispense({
   // 结算弹窗（小票预览 + 打印并划价 / 仅划价 / 返回修改）
   const [showCheckout, setShowCheckout] = useState(false)
   const [previewHtml, setPreviewHtml] = useState('')
+  const [processing, setProcessing] = useState(false) // 划价/打印进行中，锁按钮防连点
 
   const nameRef = useRef<HTMLInputElement>(null)
   const doseRef = useRef<HTMLInputElement>(null)
@@ -339,18 +340,28 @@ export function Dispense({
   }
 
   const confirmDispense = async (print: boolean): Promise<void> => {
-    setShowCheckout(false)
-    const res = await window.api.dispense.confirm(buildPayload())
-    if (!res.ok || !res.data) return toast(res.error || '划价失败', 'error')
-    const pres = res.data
-    setLastPrescription(pres)
-    toast('划价完成，库存已扣减', 'ok')
-    if (print) {
-      const pr = await window.api.dispense.print(pres.id)
-      if (pr.ok && pr.data?.ok) toast('已发送打印', 'ok')
-      else toast('打印失败：' + (pr.data?.error || pr.error || '未知'), 'error')
+    if (processing) return // 防连点：进行中直接忽略
+    setProcessing(true)
+    try {
+      const res = await window.api.dispense.confirm(buildPayload())
+      if (!res.ok || !res.data) {
+        toast(res.error || '划价失败', 'error')
+        return
+      }
+      const pres = res.data
+      setLastPrescription(pres)
+      if (print) {
+        const pr = await window.api.dispense.print(pres.id)
+        if (pr.ok && pr.data?.ok) toast('划价完成，已发送打印', 'ok')
+        else toast('划价成功，但打印失败：' + (pr.data?.error || pr.error || '未知'), 'error')
+      } else {
+        toast('划价完成，库存已扣减', 'ok')
+      }
+      setShowCheckout(false)
+      setShowDone(true)
+    } finally {
+      setProcessing(false)
     }
-    setShowDone(true)
   }
 
   const finishAndClear = (): void => {
@@ -732,14 +743,14 @@ export function Dispense({
         width="max-w-3xl"
         footer={
           <>
-            <button className="btn-ghost" onClick={() => setShowCheckout(false)}>
+            <button className="btn-ghost" onClick={() => setShowCheckout(false)} disabled={processing}>
               返回修改
             </button>
-            <button className="btn-accent" onClick={() => confirmDispense(false)}>
+            <button className="btn-accent" onClick={() => confirmDispense(false)} disabled={processing}>
               仅划价（不打印）
             </button>
-            <button className="btn-primary" onClick={() => confirmDispense(true)}>
-              打印并划价
+            <button className="btn-primary" onClick={() => confirmDispense(true)} disabled={processing}>
+              {processing ? '处理中…' : '打印并划价'}
             </button>
           </>
         }
@@ -845,15 +856,20 @@ export function Dispense({
           <>
             <button
               className="btn-ghost"
+              disabled={processing}
               onClick={async () => {
-                if (lastPrescription) {
+                if (!lastPrescription || processing) return
+                setProcessing(true)
+                try {
                   const pr = await window.api.dispense.print(lastPrescription.id)
                   if (pr.ok && pr.data?.ok) toast('已发送打印', 'ok')
-                  else toast('打印失败', 'error')
+                  else toast('打印失败：' + (pr.data?.error || pr.error || ''), 'error')
+                } finally {
+                  setProcessing(false)
                 }
               }}
             >
-              重新打印小票
+              {processing ? '打印中…' : '重新打印小票'}
             </button>
             <button className="btn-primary" onClick={finishAndClear}>
               新开一张

@@ -143,8 +143,10 @@ function seedDefaults(isNew: boolean): void {
   )
   setIfAbsent.run('clinic_name', '仲谦')
   setIfAbsent.run('printer_mode', '58mm')
+  setIfAbsent.run('printer_device', '')
   setIfAbsent.run('backup_folder_path', '')
   setIfAbsent.run('theme', 'modern')
+  setIfAbsent.run('ui_zoom', '1')
   setIfAbsent.run('password_hash', '')
   setIfAbsent.run('recovery_key_hash', '')
 

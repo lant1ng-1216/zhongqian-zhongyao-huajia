@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { AppSettings } from '../../../shared/types'
+import type { AppSettings, PrinterInfo } from '../../../shared/types'
 import { PageHeader } from '../components/ui'
 import { useToast } from '../components/Toast'
 import { useTheme, THEME_LABELS, type ThemeId } from '../theme/ThemeProvider'
@@ -11,6 +11,10 @@ export function Settings({ onClinicNameChange }: { onClinicNameChange: (n: strin
   const [clinicName, setClinicName] = useState('')
   const [backupPath, setBackupPath] = useState('')
   const [printerMode, setPrinterMode] = useState<'58mm' | 'a5'>('58mm')
+  const [printerDevice, setPrinterDevice] = useState('')
+  const [printers, setPrinters] = useState<PrinterInfo[]>([])
+  const [testing, setTesting] = useState(false)
+  const [zoom, setZoom] = useState(1)
 
   const [oldPwd, setOldPwd] = useState('')
   const [newPwd, setNewPwd] = useState('')
@@ -23,7 +27,12 @@ export function Settings({ onClinicNameChange }: { onClinicNameChange: (n: strin
         setClinicName(res.data.clinic_name)
         setBackupPath(res.data.backup_folder_path)
         setPrinterMode(res.data.printer_mode)
+        setPrinterDevice(res.data.printer_device)
+        setZoom(res.data.ui_zoom || 1)
       }
+    })
+    window.api.printers.list().then((res) => {
+      if (res.ok && res.data) setPrinters(res.data)
     })
   }, [])
 
@@ -31,12 +40,28 @@ export function Settings({ onClinicNameChange }: { onClinicNameChange: (n: strin
     const res = await window.api.settings.save({
       clinic_name: clinicName,
       printer_mode: printerMode,
+      printer_device: printerDevice,
       backup_folder_path: backupPath
     })
     if (res.ok) {
       toast('设置已保存', 'ok')
       onClinicNameChange(clinicName)
     } else toast(res.error || '保存失败', 'error')
+  }
+
+  const doTestPrint = async (): Promise<void> => {
+    setTesting(true)
+    // 先保存当前选择的打印机，确保测试用的是它
+    await window.api.settings.save({ printer_mode: printerMode, printer_device: printerDevice })
+    const res = await window.api.printers.test(printerDevice)
+    setTesting(false)
+    if (res.ok && res.data?.ok) toast('测试小票已发送，请查看打印机', 'ok')
+    else toast('测试打印失败：' + (res.data?.error || res.error || '未知'), 'error')
+  }
+
+  const applyZoom = async (z: number): Promise<void> => {
+    setZoom(z)
+    await window.api.ui.setZoom(z)
   }
 
   const chooseBackupFolder = async (): Promise<void> => {
@@ -101,6 +126,34 @@ export function Settings({ onClinicNameChange }: { onClinicNameChange: (n: strin
               </button>
             ))}
           </div>
+
+          <div className="mt-5 pt-4 border-t border-line">
+            <h3 className="font-semibold mb-1">界面缩放（平板/小屏适配）</h3>
+            <p className="text-muted text-[0.82em] mb-3">
+              整体等比缩放界面。屏幕小、内容挤在一起时，往左拖调小即可装下；也可用快捷键 Ctrl 加号 / Ctrl 减号 / Ctrl 0。
+            </p>
+            <div className="flex items-center gap-4">
+              <button className="btn-ghost btn-sm" onClick={() => applyZoom(Math.max(0.5, +(zoom - 0.1).toFixed(2)))}>
+                A-
+              </button>
+              <input
+                type="range"
+                min={0.5}
+                max={1.3}
+                step={0.05}
+                value={zoom}
+                onChange={(e) => applyZoom(parseFloat(e.target.value))}
+                className="flex-1"
+              />
+              <button className="btn-ghost btn-sm" onClick={() => applyZoom(Math.min(1.3, +(zoom + 0.1).toFixed(2)))}>
+                A+
+              </button>
+              <span className="w-14 text-right font-semibold">{Math.round(zoom * 100)}%</span>
+              <button className="btn-ghost btn-sm" onClick={() => applyZoom(1)}>
+                重置
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* 基础设置 */}
@@ -110,6 +163,32 @@ export function Settings({ onClinicNameChange }: { onClinicNameChange: (n: strin
             <div>
               <label className="label">诊所 / 店铺名称（小票抬头）</label>
               <input className="input" value={clinicName} onChange={(e) => setClinicName(e.target.value)} />
+            </div>
+            <div>
+              <label className="label">打印机（选定你的小票机，避免打到别的设备）</label>
+              <div className="flex gap-2">
+                <select
+                  className="input"
+                  value={printerDevice}
+                  onChange={(e) => setPrinterDevice(e.target.value)}
+                >
+                  <option value="">（系统默认打印机）</option>
+                  {printers.map((p) => (
+                    <option key={p.name} value={p.name}>
+                      {p.displayName}
+                      {p.isDefault ? '（默认）' : ''}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="btn-ghost whitespace-nowrap"
+                  onClick={() =>
+                    window.api.printers.list().then((res) => res.ok && res.data && setPrinters(res.data))
+                  }
+                >
+                  刷新
+                </button>
+              </div>
             </div>
             <div>
               <label className="label">打印机模式</label>
@@ -128,9 +207,17 @@ export function Settings({ onClinicNameChange }: { onClinicNameChange: (n: strin
                 </label>
               </div>
             </div>
-            <button className="btn-primary" onClick={saveBasic}>
-              保存
-            </button>
+            <div className="flex gap-2">
+              <button className="btn-primary" onClick={saveBasic}>
+                保存
+              </button>
+              <button className="btn-accent" onClick={doTestPrint} disabled={testing}>
+                {testing ? '打印中…' : '测试打印'}
+              </button>
+            </div>
+            <p className="text-muted text-[0.8em]">
+              打不出来时：先在此选对你的小票打印机 → 点"测试打印"看是否出纸出字；仍不行可切到 A5 模式用系统对话框打印。
+            </p>
           </div>
         </div>
 

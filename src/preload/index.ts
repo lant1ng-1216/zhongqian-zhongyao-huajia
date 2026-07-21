@@ -12,6 +12,7 @@ import type {
   PurchaseRecord,
   PriceAdjustment,
   AppSettings,
+  PrinterInfo,
   ImportPreviewRow
 } from '../shared/types'
 
@@ -63,6 +64,16 @@ const api = {
       ipcRenderer.invoke('dispense:print', id) as Promise<ApiResult<{ ok: boolean; error?: string }>>,
     previewHtml: (payload: DispensePayload) =>
       ipcRenderer.invoke('dispense:previewHtml', payload) as Promise<ApiResult<string>>
+  },
+  printers: {
+    list: () => ipcRenderer.invoke('printers:list') as Promise<ApiResult<PrinterInfo[]>>,
+    test: (deviceName?: string) =>
+      ipcRenderer.invoke('printers:test', deviceName) as Promise<
+        ApiResult<{ ok: boolean; error?: string }>
+      >
+  },
+  ui: {
+    setZoom: (zoom: number) => ipcRenderer.invoke('ui:setZoom', zoom) as Promise<ApiResult<number>>
   },
   prescriptions: {
     list: (patientId?: number) =>

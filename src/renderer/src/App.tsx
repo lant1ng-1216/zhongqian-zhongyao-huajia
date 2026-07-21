@@ -60,6 +60,35 @@ function App(): JSX.Element {
     }
   }, [authed])
 
+  // 全局界面缩放快捷键：Ctrl +/-/0（平板/小屏适配）
+  useEffect(() => {
+    if (!authed) return
+    const zoomRef = { v: 1 }
+    window.api.settings.get().then((res) => {
+      if (res.ok && res.data) zoomRef.v = res.data.ui_zoom || 1
+    })
+    const apply = async (z: number): Promise<void> => {
+      const clamped = Math.min(1.3, Math.max(0.5, +z.toFixed(2)))
+      zoomRef.v = clamped
+      await window.api.ui.setZoom(clamped)
+    }
+    const onKey = (e: KeyboardEvent): void => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      if (e.key === '=' || e.key === '+') {
+        e.preventDefault()
+        apply(zoomRef.v + 0.1)
+      } else if (e.key === '-') {
+        e.preventDefault()
+        apply(zoomRef.v - 0.1)
+      } else if (e.key === '0') {
+        e.preventDefault()
+        apply(1)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [authed])
+
   if (!authed) return <Login onSuccess={() => setAuthed(true)} />
 
   return (

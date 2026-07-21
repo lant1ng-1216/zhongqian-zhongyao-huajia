@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { initDb } from './db'
-import { backfillPinyin } from './services'
+import { backfillPinyin, getSettings } from './services'
 import { registerIpc } from './ipc'
 import { runBackup } from './backup'
 
@@ -25,6 +25,16 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => mainWindow?.show())
+
+  // 启动时应用已保存的界面缩放
+  mainWindow.webContents.on('did-finish-load', () => {
+    try {
+      const z = getSettings().ui_zoom || 1
+      mainWindow?.webContents.setZoomFactor(Math.min(1.3, Math.max(0.5, z)))
+    } catch {
+      /* 忽略 */
+    }
+  })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)

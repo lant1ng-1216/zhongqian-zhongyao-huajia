@@ -115,9 +115,17 @@ export interface PriceAdjustment {
 export interface AppSettings {
   clinic_name: string
   printer_mode: '58mm' | 'a5'
+  printer_device: string // 指定打印机名称（空=系统默认）
   backup_folder_path: string
   theme: 'modern' | 'chinese' | 'large'
+  ui_zoom: number // 界面缩放系数（0.5–1.3，默认 1）
   has_password: boolean
+}
+
+export interface PrinterInfo {
+  name: string
+  displayName: string
+  isDefault: boolean
 }
 
 export interface ImportPreviewRow {

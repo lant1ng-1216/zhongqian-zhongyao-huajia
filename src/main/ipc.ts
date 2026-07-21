@@ -3,7 +3,7 @@ import * as svc from './services'
 import * as auth from './auth'
 import * as excel from './excel'
 import { runBackup } from './backup'
-import { printReceipt, previewDraftHtml } from './print'
+import { printReceipt, previewDraftHtml, listPrinters, testPrint } from './print'
 import type { ApiResult } from '../shared/types'
 
 function wrap<T>(fn: () => T): ApiResult<T> {
@@ -54,6 +54,8 @@ export function registerIpc(): void {
   ipcMain.handle('dispense:quote', (_e, payload) => wrap(() => svc.quote(payload)))
   ipcMain.handle('dispense:confirm', (_e, payload) => wrap(() => svc.confirmDispense(payload)))
   ipcMain.handle('dispense:print', (_e, id: number) => wrapAsync(() => printReceipt(id)))
+  ipcMain.handle('printers:list', () => wrapAsync(() => listPrinters()))
+  ipcMain.handle('printers:test', (_e, deviceName?: string) => wrapAsync(() => testPrint(deviceName)))
   ipcMain.handle('dispense:previewHtml', (_e, payload) => wrap(() => previewDraftHtml(payload)))
 
   // ---- 处方历史 ----
@@ -101,6 +103,17 @@ export function registerIpc(): void {
   // ---- 设置 ----
   ipcMain.handle('settings:get', () => wrap(() => svc.getSettings()))
   ipcMain.handle('settings:save', (_e, partial) => wrap(() => svc.saveSettings(partial)))
+
+  // 界面缩放：即时应用到当前窗口并持久化
+  ipcMain.handle('ui:setZoom', (e, zoom: number) =>
+    wrap(() => {
+      const z = Math.min(1.3, Math.max(0.5, zoom || 1))
+      const win = BrowserWindow.fromWebContents(e.sender)
+      if (win) win.webContents.setZoomFactor(z)
+      svc.saveSettings({ ui_zoom: z })
+      return z
+    })
+  )
 
   // ---- 备份 ----
   ipcMain.handle('backup:run', () => wrap(() => runBackup()))
