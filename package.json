@@ -1,6 +1,6 @@
 {
   "name": "zhongqian",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "仲谦 · 中药划价软件",
   "main": "./out/main/index.js",
   "author": "仲谦",
@@ -16,6 +16,7 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^11.8.1",
+    "iconv-lite": "^0.6.3",
     "pinyin-pro": "^3.26.0",
     "xlsx": "^0.18.5"
   },

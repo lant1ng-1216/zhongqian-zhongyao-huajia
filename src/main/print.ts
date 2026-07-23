@@ -2,6 +2,8 @@ import { BrowserWindow, app } from 'electron'
 import { writeFileSync } from 'fs'
 import { join } from 'path'
 import { getSettings, getPrescription, dailySequence, quote } from './services'
+import { buildReceiptEscpos } from './escpos'
+import { rawPrint } from './rawprint'
 import type { Prescription, DispensePayload, PrinterInfo } from '../shared/types'
 
 function esc(s: string): string {
@@ -198,15 +200,34 @@ function enqueuePrint(
   return run
 }
 
+// 解析目标打印机：优先用户所选；为空则回退系统默认
+async function resolveDevice(preferred: string): Promise<string> {
+  if (preferred) return preferred
+  try {
+    const list = await listPrinters()
+    return list.find((p) => p.isDefault)?.name || list[0]?.name || ''
+  } catch {
+    return ''
+  }
+}
+
 export async function printReceipt(
   prescriptionId: number
 ): Promise<{ ok: boolean; error?: string }> {
   const settings = getSettings()
   const mode = settings.printer_mode
-  const html = buildReceiptHtml(prescriptionId, mode)
   return enqueuePrint(async () => {
     try {
-      return await doPrint(html, mode, settings.printer_device)
+      if (mode === '58mm') {
+        // 58mm 热敏：ESC/POS 原始指令直打（与满天星一致）
+        const p = getPrescription(prescriptionId)
+        if (!p) return { ok: false, error: '处方不存在' }
+        const seq = dailySequence(prescriptionId)
+        const device = await resolveDevice(settings.printer_device)
+        return await rawPrint(device, buildReceiptEscpos(p, seq))
+      }
+      // A5 普通打印机：走系统对话框（网页渲染）
+      return await doPrint(buildReceiptHtml(prescriptionId, mode), mode, settings.printer_device)
     } catch (e) {
       return { ok: false, error: (e as Error).message }
     }
@@ -253,10 +274,13 @@ export async function testPrint(
       { herb_id: 0, herb_name: '黄芪', dose_per_unit_g: 12, unit_price_snapshot: 45, subtotal: 3.78 }
     ]
   }
-  const html = renderReceipt(sample, mode, 8888)
   return enqueuePrint(async () => {
     try {
-      return await doPrint(html, mode, deviceName ?? settings.printer_device)
+      if (mode === '58mm') {
+        const device = await resolveDevice(deviceName ?? settings.printer_device)
+        return await rawPrint(device, buildReceiptEscpos(sample, 8888))
+      }
+      return await doPrint(renderReceipt(sample, mode, 8888), mode, deviceName ?? settings.printer_device)
     } catch (e) {
       return { ok: false, error: (e as Error).message }
     }
