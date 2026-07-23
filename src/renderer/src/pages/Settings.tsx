@@ -100,7 +100,7 @@ export function Settings({ onClinicNameChange }: { onClinicNameChange: (n: strin
   return (
     <div className="min-h-full flex flex-col">
       <PageHeader title="设置" desc="诊所信息、界面主题、打印、备份与密码" />
-      <div className="p-6 grid grid-cols-2 gap-4 max-w-4xl">
+      <div className="p-6 grid grid-cols-2 gap-4">
         {/* 界面主题 */}
         <div className="card p-5 col-span-2">
           <h3 className="font-semibold mb-1">界面主题</h3>

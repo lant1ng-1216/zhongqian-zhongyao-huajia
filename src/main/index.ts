@@ -4,15 +4,20 @@ import { initDb } from './db'
 import { backfillPinyin, getSettings } from './services'
 import { registerIpc } from './ipc'
 import { runBackup } from './backup'
+import { getInitialState, trackWindow } from './windowState'
 
 let mainWindow: BrowserWindow | null = null
 
 function createWindow(): void {
+  const st = getInitialState()
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 820,
-    minWidth: 1024,
-    minHeight: 680,
+    width: st.width,
+    height: st.height,
+    ...(st.x !== undefined && st.y !== undefined ? { x: st.x, y: st.y } : {}),
+    minWidth: 480, // 允许拖到很小，适配小平板
+    minHeight: 360,
+    resizable: true, // 明确允许拖动边框改变大小
+    maximizable: true,
     show: false,
     autoHideMenuBar: true,
     title: '仲谦 · 中药划价',
@@ -24,7 +29,13 @@ function createWindow(): void {
     }
   })
 
-  mainWindow.on('ready-to-show', () => mainWindow?.show())
+  // 记住窗口大小/位置/最大化
+  trackWindow(mainWindow)
+
+  mainWindow.on('ready-to-show', () => {
+    if (st.isMaximized) mainWindow?.maximize()
+    mainWindow?.show()
+  })
 
   // 启动时应用已保存的界面缩放
   mainWindow.webContents.on('did-finish-load', () => {
